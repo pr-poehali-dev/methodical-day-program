@@ -5,12 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import Icon from "@/components/ui/icon";
 import { toast } from "sonner";
 
 const Index = () => {
   const [ratings, setRatings] = useState<{ [key: string]: number }>({});
   const [reviews, setReviews] = useState<{ [key: string]: string }>({});
+  const [registrationForm, setRegistrationForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    school: "",
+    position: "",
+    experience: "",
+    selectedSessions: [] as string[]
+  });
 
   const eventInfo = {
     date: "15 марта 2025",
@@ -101,6 +114,33 @@ const Index = () => {
     }
   };
 
+  const handleSessionToggle = (sessionId: string) => {
+    setRegistrationForm(prev => ({
+      ...prev,
+      selectedSessions: prev.selectedSessions.includes(sessionId)
+        ? prev.selectedSessions.filter(id => id !== sessionId)
+        : [...prev.selectedSessions, sessionId]
+    }));
+  };
+
+  const handleRegistrationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registrationForm.fullName || !registrationForm.email || registrationForm.selectedSessions.length === 0) {
+      toast.error("Заполните обязательные поля и выберите хотя бы один мастер-класс");
+      return;
+    }
+    toast.success("Регистрация успешно завершена! 🎉 Ждём вас на мероприятии!");
+    setRegistrationForm({
+      fullName: "",
+      email: "",
+      phone: "",
+      school: "",
+      position: "",
+      experience: "",
+      selectedSessions: []
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -127,8 +167,12 @@ const Index = () => {
           </div>
         </header>
 
-        <Tabs defaultValue="program" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl mx-auto h-auto p-1 bg-card shadow-lg">
+        <Tabs defaultValue="registration" className="space-y-8">
+          <TabsList className="grid w-full grid-cols-4 max-w-4xl mx-auto h-auto p-1 bg-card shadow-lg">
+            <TabsTrigger value="registration" className="text-base py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Icon name="UserPlus" size={20} className="mr-2" />
+              Регистрация
+            </TabsTrigger>
             <TabsTrigger value="program" className="text-base py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Icon name="CalendarDays" size={20} className="mr-2" />
               Программа
@@ -142,6 +186,144 @@ const Index = () => {
               Отзывы
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="registration" className="animate-fade-in">
+            <Card className="max-w-3xl mx-auto border-2 bg-card/80 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Icon name="ClipboardCheck" size={32} className="text-primary" />
+                  Регистрация на мероприятие
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Заполните форму для участия в едином методическом дне
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleRegistrationSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-base font-medium">
+                        ФИО <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="fullName"
+                        placeholder="Иванов Иван Иванович"
+                        value={registrationForm.fullName}
+                        onChange={(e) => setRegistrationForm({...registrationForm, fullName: e.target.value})}
+                        className="text-base"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-base font-medium">
+                        Email <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="ivanov@school.ru"
+                        value={registrationForm.email}
+                        onChange={(e) => setRegistrationForm({...registrationForm, email: e.target.value})}
+                        className="text-base"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-base font-medium">
+                        Телефон
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+7 (900) 123-45-67"
+                        value={registrationForm.phone}
+                        onChange={(e) => setRegistrationForm({...registrationForm, phone: e.target.value})}
+                        className="text-base"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="school" className="text-base font-medium">
+                        Образовательное учреждение
+                      </Label>
+                      <Input
+                        id="school"
+                        placeholder="МБОУ СОШ №1"
+                        value={registrationForm.school}
+                        onChange={(e) => setRegistrationForm({...registrationForm, school: e.target.value})}
+                        className="text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="position" className="text-base font-medium">
+                        Должность
+                      </Label>
+                      <Input
+                        id="position"
+                        placeholder="Учитель математики"
+                        value={registrationForm.position}
+                        onChange={(e) => setRegistrationForm({...registrationForm, position: e.target.value})}
+                        className="text-base"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="experience" className="text-base font-medium">
+                        Стаж работы
+                      </Label>
+                      <Select value={registrationForm.experience} onValueChange={(value) => setRegistrationForm({...registrationForm, experience: value})}>
+                        <SelectTrigger id="experience" className="text-base">
+                          <SelectValue placeholder="Выберите стаж" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0-3">До 3 лет</SelectItem>
+                          <SelectItem value="3-10">3-10 лет</SelectItem>
+                          <SelectItem value="10-20">10-20 лет</SelectItem>
+                          <SelectItem value="20+">Более 20 лет</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label className="text-base font-medium">
+                      Выберите мастер-классы <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                      {schedule.map((session) => (
+                        <div key={session.id} className="flex items-start space-x-3 p-3 rounded-md hover:bg-background/50 transition-colors">
+                          <Checkbox
+                            id={`session-${session.id}`}
+                            checked={registrationForm.selectedSessions.includes(session.id)}
+                            onCheckedChange={() => handleSessionToggle(session.id)}
+                            className="mt-1"
+                          />
+                          <label htmlFor={`session-${session.id}`} className="flex-1 cursor-pointer">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-base">{session.title}</span>
+                              <Badge variant="secondary" className="text-xs">{session.category}</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {session.time} • {session.speaker} • {session.room}
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button type="submit" size="lg" className="w-full text-lg py-6">
+                    <Icon name="Send" size={20} className="mr-2" />
+                    Зарегистрироваться
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="program" className="space-y-6 animate-fade-in">
             <div className="grid gap-6 md:grid-cols-2">

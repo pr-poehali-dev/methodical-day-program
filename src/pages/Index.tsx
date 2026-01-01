@@ -32,6 +32,13 @@ const Index = () => {
     theme: "Инновационные методики в современном образовании"
   };
 
+  const [sessionParticipants, setSessionParticipants] = useState<{ [key: string]: number }>({
+    "1": 12,
+    "2": 8,
+    "3": 25,
+    "4": 15
+  });
+
   const schedule = [
     {
       id: "1",
@@ -39,7 +46,8 @@ const Index = () => {
       title: "Цифровые технологии в классе",
       speaker: "Анна Петрова",
       room: "Аудитория 201",
-      category: "Технологии"
+      category: "Технологии",
+      maxParticipants: 30
     },
     {
       id: "2",
@@ -47,7 +55,8 @@ const Index = () => {
       title: "Игровые методики обучения",
       speaker: "Михаил Сидоров",
       room: "Аудитория 305",
-      category: "Методики"
+      category: "Методики",
+      maxParticipants: 25
     },
     {
       id: "3",
@@ -55,7 +64,8 @@ const Index = () => {
       title: "Эмоциональный интеллект учащихся",
       speaker: "Елена Волкова",
       room: "Актовый зал",
-      category: "Психология"
+      category: "Психология",
+      maxParticipants: 50
     },
     {
       id: "4",
@@ -63,7 +73,8 @@ const Index = () => {
       title: "Проектная деятельность в школе",
       speaker: "Дмитрий Козлов",
       room: "Аудитория 201",
-      category: "Методики"
+      category: "Методики",
+      maxParticipants: 30
     }
   ];
 
@@ -129,6 +140,23 @@ const Index = () => {
       toast.error("Заполните обязательные поля и выберите хотя бы один мастер-класс");
       return;
     }
+
+    const fullSessions = registrationForm.selectedSessions.filter(sessionId => {
+      const session = schedule.find(s => s.id === sessionId);
+      return session && sessionParticipants[sessionId] >= session.maxParticipants;
+    });
+
+    if (fullSessions.length > 0) {
+      toast.error("Некоторые выбранные мастер-классы уже заполнены. Пожалуйста, выберите другие.");
+      return;
+    }
+
+    const updatedParticipants = { ...sessionParticipants };
+    registrationForm.selectedSessions.forEach(sessionId => {
+      updatedParticipants[sessionId] = (updatedParticipants[sessionId] || 0) + 1;
+    });
+    setSessionParticipants(updatedParticipants);
+
     toast.success("Регистрация успешно завершена! 🎉 Ждём вас на мероприятии!");
     setRegistrationForm({
       fullName: "",
@@ -294,25 +322,64 @@ const Index = () => {
                       Выберите мастер-классы <span className="text-destructive">*</span>
                     </Label>
                     <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
-                      {schedule.map((session) => (
-                        <div key={session.id} className="flex items-start space-x-3 p-3 rounded-md hover:bg-background/50 transition-colors">
-                          <Checkbox
-                            id={`session-${session.id}`}
-                            checked={registrationForm.selectedSessions.includes(session.id)}
-                            onCheckedChange={() => handleSessionToggle(session.id)}
-                            className="mt-1"
-                          />
-                          <label htmlFor={`session-${session.id}`} className="flex-1 cursor-pointer">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-base">{session.title}</span>
-                              <Badge variant="secondary" className="text-xs">{session.category}</Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {session.time} • {session.speaker} • {session.room}
-                            </div>
-                          </label>
-                        </div>
-                      ))}
+                      {schedule.map((session) => {
+                        const currentCount = sessionParticipants[session.id] || 0;
+                        const spotsLeft = session.maxParticipants - currentCount;
+                        const isFull = spotsLeft <= 0;
+                        const isAlmostFull = spotsLeft <= 5 && spotsLeft > 0;
+
+                        return (
+                          <div key={session.id} className={`flex items-start space-x-3 p-3 rounded-md transition-colors ${
+                            isFull ? 'opacity-60 bg-muted/50' : 'hover:bg-background/50'
+                          }`}>
+                            <Checkbox
+                              id={`session-${session.id}`}
+                              checked={registrationForm.selectedSessions.includes(session.id)}
+                              onCheckedChange={() => handleSessionToggle(session.id)}
+                              disabled={isFull}
+                              className="mt-1"
+                            />
+                            <label htmlFor={`session-${session.id}`} className={`flex-1 ${isFull ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="font-semibold text-base">{session.title}</span>
+                                <Badge variant="secondary" className="text-xs">{session.category}</Badge>
+                                {isFull ? (
+                                  <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                                    <Icon name="XCircle" size={12} />
+                                    Мест нет
+                                  </Badge>
+                                ) : isAlmostFull ? (
+                                  <Badge variant="outline" className="text-xs flex items-center gap-1 border-amber-500 text-amber-600">
+                                    <Icon name="AlertCircle" size={12} />
+                                    Осталось {spotsLeft}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs flex items-center gap-1 border-green-500 text-green-600">
+                                    <Icon name="Users" size={12} />
+                                    Свободно {spotsLeft}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {session.time} • {session.speaker} • {session.room}
+                              </div>
+                              <div className="mt-2">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                                  <span>Зарегистрировано: {currentCount} из {session.maxParticipants}</span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                                  <div 
+                                    className={`h-full transition-all duration-300 ${
+                                      isFull ? 'bg-destructive' : isAlmostFull ? 'bg-amber-500' : 'bg-green-500'
+                                    }`}
+                                    style={{ width: `${(currentCount / session.maxParticipants) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </label>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -327,29 +394,68 @@ const Index = () => {
 
           <TabsContent value="program" className="space-y-6 animate-fade-in">
             <div className="grid gap-6 md:grid-cols-2">
-              {schedule.map((session) => (
-                <Card key={session.id} className="hover-scale border-2 hover:border-primary/50 transition-all duration-300 bg-card/80 backdrop-blur">
-                  <CardHeader>
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="secondary" className="text-sm font-medium">
-                        {session.category}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground font-medium">{session.time}</span>
-                    </div>
-                    <CardTitle className="text-2xl">{session.title}</CardTitle>
-                    <CardDescription className="text-base mt-2">
-                      <div className="flex items-center gap-2 mt-2">
-                        <Icon name="User" size={16} className="text-accent" />
-                        <span>{session.speaker}</span>
+              {schedule.map((session) => {
+                const currentCount = sessionParticipants[session.id] || 0;
+                const spotsLeft = session.maxParticipants - currentCount;
+                const isFull = spotsLeft <= 0;
+                const isAlmostFull = spotsLeft <= 5 && spotsLeft > 0;
+
+                return (
+                  <Card key={session.id} className="hover-scale border-2 hover:border-primary/50 transition-all duration-300 bg-card/80 backdrop-blur">
+                    <CardHeader>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant="secondary" className="text-sm font-medium">
+                            {session.category}
+                          </Badge>
+                          {isFull ? (
+                            <Badge variant="destructive" className="text-sm flex items-center gap-1">
+                              <Icon name="XCircle" size={14} />
+                              Заполнено
+                            </Badge>
+                          ) : isAlmostFull ? (
+                            <Badge variant="outline" className="text-sm flex items-center gap-1 border-amber-500 text-amber-600">
+                              <Icon name="AlertCircle" size={14} />
+                              Мало мест
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <span className="text-sm text-muted-foreground font-medium">{session.time}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Icon name="DoorOpen" size={16} className="text-accent" />
-                        <span>{session.room}</span>
+                      <CardTitle className="text-2xl">{session.title}</CardTitle>
+                      <CardDescription className="text-base mt-2">
+                        <div className="flex items-center gap-2 mt-2">
+                          <Icon name="User" size={16} className="text-accent" />
+                          <span>{session.speaker}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Icon name="DoorOpen" size={16} className="text-accent" />
+                          <span>{session.room}</span>
+                        </div>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Участников:</span>
+                          <span className="font-semibold">{currentCount} / {session.maxParticipants}</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-500 ${
+                              isFull ? 'bg-destructive' : isAlmostFull ? 'bg-amber-500' : 'bg-primary'
+                            }`}
+                            style={{ width: `${(currentCount / session.maxParticipants) * 100}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground text-right">
+                          {isFull ? 'Регистрация закрыта' : `Осталось мест: ${spotsLeft}`}
+                        </p>
                       </div>
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 
